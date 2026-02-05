@@ -24,7 +24,7 @@ Docker-based home server configuration for media and security cameras.
    docker compose up -d
    ```
 
-The `CAMERA_PASSWORD` variable in `.env` is substituted into `config/config.yml` for the go2rtc RTSP streams. URL-encode the password if it contains special characters (e.g. `!` becomes `%21`, `&` becomes `%26`).
+The `FRIGATE_CAMERA_PASSWORD` variable in `.env` is substituted into `config/config.yml` for the go2rtc RTSP streams. Frigate uses `{FRIGATE_VAR}` syntax (no `$`) and all env vars must be prefixed with `FRIGATE_`. The password must be URL-encoded manually for go2rtc streams (e.g. `!` becomes `%21`, `&` becomes `%26`).
 
 ### Immich
 

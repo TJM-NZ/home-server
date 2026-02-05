@@ -6,13 +6,13 @@ mqtt:
 go2rtc:
   streams:
     driveway_main:
-      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.56:554/h264Preview_01_main
+      - rtsp://admin:{FRIGATE_CAMERA_PASSWORD}@192.168.50.56:554/h264Preview_01_main
     driveway_sub:
-      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.56:554/h264Preview_01_sub
+      - rtsp://admin:{FRIGATE_CAMERA_PASSWORD}@192.168.50.56:554/h264Preview_01_sub
     side_yard_main:
-      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.129:554/h264Preview_01_main
+      - rtsp://admin:{FRIGATE_CAMERA_PASSWORD}@192.168.50.129:554/h264Preview_01_main
     side_yard_sub:
-      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.129:554/h264Preview_01_sub
+      - rtsp://admin:{FRIGATE_CAMERA_PASSWORD}@192.168.50.129:554/h264Preview_01_sub
 
 detectors:
   cpu1:
