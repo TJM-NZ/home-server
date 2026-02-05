@@ -41,6 +41,7 @@ services:
       - mosquitto
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./frigate-alerts/alerts.py:/app/alerts.py
     environment:
       MQTT_HOST: mosquitto
       NTFY_TOPIC: frigate-manse

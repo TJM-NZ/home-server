@@ -19,3 +19,6 @@ frigate/mosquitto/log/
 
 # Immich runtime data
 immich/postgres/
+
+# Deploy log
+deploy.log
