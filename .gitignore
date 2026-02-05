@@ -1,0 +1,21 @@
+# Environment files (contain secrets)
+.env
+
+# Frigate runtime data
+frigate/config/frigate.db
+frigate/config/frigate.db-shm
+frigate/config/frigate.db-wal
+frigate/config/backup.db
+frigate/config/.jwt_secret
+frigate/config/notifications.pem
+frigate/config/.exports
+frigate/config/.search_stats.json
+frigate/config/.timeline
+frigate/config/.vacuum
+frigate/config/model_cache/
+frigate/storage/
+frigate/mosquitto/data/
+frigate/mosquitto/log/
+
+# Immich runtime data
+immich/postgres/

@@ -1,0 +1,47 @@
+services:
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - "1883:1883"
+
+  frigate:
+    container_name: frigate
+    restart: unless-stopped
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "256mb"
+    depends_on:
+      - mosquitto
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config:/config
+      - /mnt/frigate-storage:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5000:5000"   # Web UI
+      - "8554:8554"   # RTSP restream
+      - "8555:8555/tcp" # WebRTC over TCP
+      - "8555:8555/udp" # WebRTC over UDP
+    env_file:
+      - .env
+
+  frigate-alerts:
+    container_name: frigate-alerts
+    build: ./frigate-alerts
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      MQTT_HOST: mosquitto
+      NTFY_TOPIC: frigate-manse
+      FRIGATE_URL: http://frigate:5000

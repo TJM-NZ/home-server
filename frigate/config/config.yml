@@ -1,0 +1,120 @@
+mqtt:
+  enabled: true
+  host: mosquitto
+  port: 1883
+
+go2rtc:
+  streams:
+    driveway_main:
+      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.56:554/h264Preview_01_main
+    driveway_sub:
+      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.56:554/h264Preview_01_sub
+    side_yard_main:
+      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.129:554/h264Preview_01_main
+    side_yard_sub:
+      - rtsp://admin:${CAMERA_PASSWORD}@192.168.50.129:554/h264Preview_01_sub
+
+detectors:
+  cpu1:
+    type: cpu
+    num_threads: 4
+
+record:
+  enabled: true
+  retain:
+    days: 7
+    mode: motion
+  alerts:
+    retain:
+      days: 30
+  detections:
+    retain:
+      days: 30
+snapshots:
+  enabled: true
+  retain:
+    default: 30
+
+motion:
+  threshold: 40
+  contour_area: 50
+
+objects:
+  track:
+    - person
+    - car
+    - dog
+    - cat
+
+cameras:
+  driveway:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/driveway_sub
+          roles:
+            - detect
+        - path: rtsp://127.0.0.1:8554/driveway_main
+          roles:
+            - record
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    lpr:
+      enabled: true
+    objects:
+      track:
+        - person
+        - car
+        - dog
+        - cat
+    notifications:
+      enabled: true
+  side_yard:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/side_yard_sub
+          roles:
+            - detect
+        - path: rtsp://127.0.0.1:8554/side_yard_main
+          roles:
+            - record
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    lpr:
+      enabled: true
+    objects:
+      track:
+        - person
+        - car
+        - dog
+        - cat
+    notifications:
+      enabled: true
+detect:
+  enabled: true
+version: 0.16-0
+semantic_search:
+  enabled: false
+  model_size: small
+face_recognition:
+  enabled: false
+  model_size: small
+lpr:
+  enabled: true
+  min_area: 1500
+  recognition_threshold: 0.85
+  format: ^[A-Z]{3}[0-9]{3}$
+  match_distance: 1
+  known_plates:
+    Home Car:
+      - PNJ432
+    Grans Car:
+      - AQD819
+classification:
+  bird:
+    enabled: false
+notifications:
+  enabled: false
