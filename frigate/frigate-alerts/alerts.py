@@ -16,6 +16,8 @@ ALERT_OBJECTS = {"person", "car", "dog", "cat"}
 PET_OBJECTS = {"dog", "cat"}
 PET_COOLDOWN_SECONDS = int(os.environ.get("PET_COOLDOWN_SECONDS", 300))
 COOLDOWN_SECONDS = 60
+CODEBASE_WATCH_FILE = os.environ.get("CODEBASE_WATCH_FILE", "/app/alerts.py")
+CODEBASE_CHECK_INTERVAL = 10  # Check for file changes every 10 seconds
 DISK_CHECK_INTERVAL = 300  # Check disk every 5 minutes
 DISK_WARNING_THRESHOLD = 80  # Alert when disk usage exceeds 80%
 CAMERA_CHECK_INTERVAL = 60  # Check camera health every 1 minute
@@ -204,6 +206,40 @@ def handle_clear_cache_command():
     except Exception as e:
         print(f"Error clearing cache: {e}")
 
+def codebase_watch_loop():
+    """Background thread to detect codebase updates via file mtime changes."""
+    print(f"Starting codebase watcher on: {CODEBASE_WATCH_FILE}")
+
+    try:
+        last_mtime = os.path.getmtime(CODEBASE_WATCH_FILE)
+    except OSError:
+        print(f"Warning: watch file {CODEBASE_WATCH_FILE} not found, watcher disabled")
+        return
+
+    while True:
+        time.sleep(CODEBASE_CHECK_INTERVAL)
+        try:
+            current_mtime = os.path.getmtime(CODEBASE_WATCH_FILE)
+            if current_mtime != last_mtime:
+                last_mtime = current_mtime
+                message = f"Codebase updated on server ({CODEBASE_WATCH_FILE} changed)"
+                print(message)
+                try:
+                    requests.post(
+                        f"https://ntfy.sh/{NTFY_COMMANDS_TOPIC}",
+                        data=message,
+                        headers={
+                            "Title": "Codebase Updated",
+                            "Tags": "package",
+                        },
+                        timeout=10
+                    )
+                    print("Sent codebase update notification")
+                except Exception as e:
+                    print(f"Error sending codebase update notification: {e}")
+        except OSError:
+            pass
+
 def command_listener_loop():
     """Background thread to listen for commands via ntfy."""
     print(f"Starting command listener on topic: {NTFY_COMMANDS_TOPIC}")
@@ -285,6 +321,10 @@ def main():
     # Start disk monitoring thread
     disk_thread = threading.Thread(target=disk_monitor_loop, daemon=True)
     disk_thread.start()
+
+    # Start codebase watcher thread
+    watch_thread = threading.Thread(target=codebase_watch_loop, daemon=True)
+    watch_thread.start()
 
     # Start command listener thread
     cmd_thread = threading.Thread(target=command_listener_loop, daemon=True)
