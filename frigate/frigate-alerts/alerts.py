@@ -12,7 +12,9 @@ MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "frigate-alerts")
 NTFY_COMMANDS_TOPIC = os.environ.get("NTFY_COMMANDS_TOPIC", f"{NTFY_TOPIC}-cmd")
 FRIGATE_URL = os.environ.get("FRIGATE_URL", "http://frigate:5000")
-ALERT_OBJECTS = {"person", "car"}
+ALERT_OBJECTS = {"person", "car", "dog", "cat"}
+PET_OBJECTS = {"dog", "cat"}
+PET_COOLDOWN_SECONDS = int(os.environ.get("PET_COOLDOWN_SECONDS", 300))
 COOLDOWN_SECONDS = 60
 DISK_CHECK_INTERVAL = 300  # Check disk every 5 minutes
 DISK_WARNING_THRESHOLD = 80  # Alert when disk usage exceeds 80%
@@ -27,8 +29,10 @@ def send_notification(camera, label, event_id):
     """Send notification to ntfy with snapshot."""
     key = f"{camera}_{label}"
     now = time.time()
+    is_pet = label in PET_OBJECTS
+    cooldown = PET_COOLDOWN_SECONDS if is_pet else COOLDOWN_SECONDS
 
-    if key in last_alert and (now - last_alert[key]) < COOLDOWN_SECONDS:
+    if key in last_alert and (now - last_alert[key]) < cooldown:
         return
 
     last_alert[key] = now
@@ -38,17 +42,25 @@ def send_notification(camera, label, event_id):
     snapshot_url = f"{FRIGATE_URL}/api/events/{event_id}/snapshot.jpg"
     clip_url = f"{FRIGATE_URL}/api/events/{event_id}/clip.mp4"
 
+    headers = {
+        "Title": title,
+        "Click": clip_url,
+    }
+
+    if is_pet:
+        headers["Tags"] = "dog" if label == "dog" else "cat"
+        headers["Priority"] = "low"
+    else:
+        headers["Priority"] = "default"
+
     try:
         snapshot = requests.get(snapshot_url, timeout=10)
         if snapshot.status_code == 200:
+            headers["Filename"] = "snapshot.jpg"
             requests.post(
                 f"https://ntfy.sh/{NTFY_TOPIC}",
                 data=snapshot.content,
-                headers={
-                    "Title": title,
-                    "Filename": "snapshot.jpg",
-                    "Click": clip_url,
-                },
+                headers=headers,
                 timeout=10
             )
             print(f"Sent notification with snapshot: {message}")
@@ -56,7 +68,7 @@ def send_notification(camera, label, event_id):
             requests.post(
                 f"https://ntfy.sh/{NTFY_TOPIC}",
                 data=message,
-                headers={"Title": title},
+                headers=headers,
                 timeout=10
             )
             print(f"Sent notification without snapshot: {message}")
@@ -267,6 +279,7 @@ def main():
     print(f"Ntfy alerts topic: {NTFY_TOPIC}")
     print(f"Ntfy commands topic: {NTFY_COMMANDS_TOPIC}")
     print(f"Alerting on: {ALERT_OBJECTS}")
+    print(f"Pet objects: {PET_OBJECTS} (cooldown: {PET_COOLDOWN_SECONDS}s)")
     print(f"Disk check interval: {DISK_CHECK_INTERVAL}s, threshold: {DISK_WARNING_THRESHOLD}%")
 
     # Start disk monitoring thread
