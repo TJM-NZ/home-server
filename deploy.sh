@@ -18,8 +18,10 @@ CHANGED=$(git diff --name-only "$BEFORE" "$AFTER")
 echo "[deploy] Changes detected: $CHANGED"
 
 # --- frigate-alerts (just copy and restart, no rebuild) ---
-if echo "$CHANGED" | grep -q "^frigate/frigate-alerts/alerts.py$"; then
+if echo "$CHANGED" | grep -qE "^(frigate/frigate-alerts/alerts.py|version.sh|VERSION)$"; then
     cp "$REPO_DIR/frigate/frigate-alerts/alerts.py" "$HOME/frigate/frigate-alerts/alerts.py"
+    cp "$REPO_DIR/version.sh" "$HOME/frigate/frigate-alerts/version.sh"
+    cp "$REPO_DIR/VERSION" "$HOME/frigate/frigate-alerts/VERSION"
     docker restart frigate-alerts
     echo "[deploy] Restarted frigate-alerts"
 fi

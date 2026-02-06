@@ -206,6 +206,44 @@ def handle_clear_cache_command():
     except Exception as e:
         print(f"Error clearing cache: {e}")
 
+def handle_version_command():
+    """Report current version information."""
+    try:
+        result = subprocess.run(
+            ["/bin/bash", "/app/version.sh"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if result.returncode == 0:
+            message = result.stdout.strip()
+            print(f"Version info:\n{message}")
+        else:
+            message = "❌ Could not retrieve version information"
+            print(message)
+
+        # Send version notification
+        requests.post(
+            f"https://ntfy.sh/{NTFY_TOPIC}",
+            data=message,
+            headers={"Title": "Home Server Version"},
+            timeout=10
+        )
+
+    except Exception as e:
+        error_msg = f"Error retrieving version: {e}"
+        print(error_msg)
+        try:
+            requests.post(
+                f"https://ntfy.sh/{NTFY_TOPIC}",
+                data=error_msg,
+                headers={"Title": "Version Check Failed"},
+                timeout=10
+            )
+        except:
+            pass
+
 def codebase_watch_loop():
     """Background thread to detect codebase updates via file mtime changes."""
     print(f"Starting codebase watcher on: {CODEBASE_WATCH_FILE}")
@@ -245,6 +283,7 @@ def command_listener_loop():
     print(f"Starting command listener on topic: {NTFY_COMMANDS_TOPIC}")
     print(f"Send 'restart' to https://ntfy.sh/{NTFY_COMMANDS_TOPIC} to restart Frigate")
     print(f"Send 'clear-cache' to https://ntfy.sh/{NTFY_COMMANDS_TOPIC} to clear cache")
+    print(f"Send 'version' to https://ntfy.sh/{NTFY_COMMANDS_TOPIC} to check version")
 
     while True:
         try:
@@ -276,6 +315,8 @@ def command_listener_loop():
                                     headers={"Title": "Frigate Status"},
                                     timeout=10
                                 )
+                            elif command == 'version':
+                                handle_version_command()
                             else:
                                 print(f"Unknown command: {command}")
 
