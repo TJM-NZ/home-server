@@ -241,12 +241,12 @@ def handle_version_command():
             title = "Home Server Version"
         elif remote_version == local_version:
             lines.append(f"Latest:    {remote_version}")
-            lines.append("✅ Up to date")
-            title = "Home Server Version ✅"
+            lines.append("Up to date")
+            title = "Home Server Version"
         else:
             lines.append(f"Latest:    {remote_version}")
-            lines.append("⬆️ Update available!")
-            title = "Update Available ⬆️"
+            lines.append("Update available!")
+            title = "Update Available"
 
         message = "\n".join(lines)
         print(f"Version info:\n{message}")
