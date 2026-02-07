@@ -48,3 +48,4 @@ services:
       MQTT_HOST: mosquitto
       NTFY_TOPIC: frigate-manse
       FRIGATE_URL: http://frigate:5000
+      GITHUB_REPO: TJM-NZ/home-server
