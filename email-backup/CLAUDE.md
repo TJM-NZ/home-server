@@ -1,13 +1,13 @@
-# Gmail Backup Service
+# Email Backup Service
 
-Backs up Gmail emails labelled "Archive", stores them locally with full-text search,
+Backs up Gmail emails labelled "Backup", stores them locally with full-text search,
 extracts attachments for future Paperless-ngx integration, and periodically cleans
 up old emails from Gmail.
 
 ## Google Cloud Setup (one-time)
 
 1. Go to https://console.cloud.google.com/
-2. Create a new project (e.g. "Home Server Gmail Backup")
+2. Create a new project (e.g. "Home Server Email Backup")
 3. Enable the **Gmail API**:
    - APIs & Services → Library → search "Gmail API" → Enable
 4. Create OAuth 2.0 credentials:
@@ -22,7 +22,7 @@ up old emails from Gmail.
 ## Initial Setup
 
 ```bash
-cd ~/home-server/gmail-backup
+cd ~/home-server/email-backup
 
 # Copy env template
 cp .env.example .env
@@ -37,7 +37,7 @@ docker compose build
 
 # First run — will open a browser for OAuth consent
 # (run interactively for the initial auth flow)
-docker compose run --rm gmail-backup backup
+docker compose run --rm email-backup backup
 ```
 
 After the first run, `config/token.json` is created and subsequent runs
@@ -46,33 +46,33 @@ authenticate automatically.
 ## Gmail Labels
 
 Create these labels in Gmail:
-- **Archive** — emails you want backed up (customizable via `GMAIL_BACKUP_LABEL`)
-- **Keep** — emails that should never be deleted from Gmail (customizable via `GMAIL_KEEP_LABEL`)
+- **Backup** — emails you want backed up (customizable via `EMAIL_BACKUP_LABEL`)
+- **Keep** — emails that should never be deleted from Gmail (customizable via `EMAIL_KEEP_LABEL`)
 
 ## Usage
 
 ```bash
-# Run a backup (download new Archive emails)
-docker compose run --rm gmail-backup backup
+# Run a backup (download new Backup emails)
+docker compose run --rm email-backup backup
 
 # Run cleanup (delete emails >2 years old from Gmail, unless labelled Keep)
-docker compose run --rm gmail-backup cleanup
+docker compose run --rm email-backup cleanup
 
 # Search backed-up emails
-docker compose run --rm gmail-backup search "invoice"
+docker compose run --rm email-backup search "invoice"
 
 # View statistics
-docker compose run --rm gmail-backup stats
+docker compose run --rm email-backup stats
 ```
 
 ## Scheduling with Cron
 
 ```bash
 # Daily backup at 2am
-0 2 * * * cd ~/gmail-backup && docker compose run --rm gmail-backup backup >> /var/log/gmail-backup.log 2>&1
+0 2 * * * cd ~/email-backup && docker compose run --rm email-backup backup >> /var/log/email-backup.log 2>&1
 
 # Monthly cleanup on the 1st at 3am
-0 3 1 * * cd ~/gmail-backup && docker compose run --rm gmail-backup cleanup >> /var/log/gmail-backup.log 2>&1
+0 3 1 * * cd ~/email-backup && docker compose run --rm email-backup cleanup >> /var/log/email-backup.log 2>&1
 ```
 
 ## Storage Layout
@@ -80,7 +80,7 @@ docker compose run --rm gmail-backup stats
 ```
 $BACKUP_STORAGE_PATH/
 ├── db/
-│   └── gmail.db              # SQLite with FTS5 full-text search index
+│   └── emails.db             # SQLite with FTS5 full-text search index
 ├── raw/
 │   └── 2026/01/
 │       └── <hash>.eml        # Raw email files organized by year/month
@@ -100,9 +100,9 @@ When Paperless is set up:
 
 ```bash
 # Check backup database directly
-docker compose run --rm gmail-backup python -c "
+docker compose run --rm email-backup python -c "
 import sqlite3
-conn = sqlite3.connect('/data/db/gmail.db')
+conn = sqlite3.connect('/data/db/emails.db')
 for row in conn.execute('SELECT COUNT(*), SUM(attachment_count) FROM emails'):
     print(f'Emails: {row[0]}, Attachments: {row[1]}')
 "

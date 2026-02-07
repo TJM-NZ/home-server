@@ -1,6 +1,6 @@
 services:
-  gmail-backup:
-    container_name: gmail-backup
+  email-backup:
+    container_name: email-backup
     build: .
     restart: "no"
     volumes:

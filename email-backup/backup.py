@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gmail Backup Service
+"""Email Backup Service
 
 Backs up Gmail emails with a specified label, stores them in SQLite with
 full-text search, extracts attachments for document management, and
@@ -34,7 +34,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-log = logging.getLogger("gmail-backup")
+log = logging.getLogger("email-backup")
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 
@@ -43,12 +43,12 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 STORAGE_PATH = Path(os.environ.get("BACKUP_STORAGE_PATH", "/data"))
 CREDENTIALS_FILE = Path(os.environ.get("GOOGLE_CREDENTIALS_FILE", "/config/credentials.json"))
 TOKEN_FILE = Path(os.environ.get("GOOGLE_TOKEN_FILE", "/config/token.json"))
-BACKUP_LABEL = os.environ.get("GMAIL_BACKUP_LABEL", "Archive")
-KEEP_LABEL = os.environ.get("GMAIL_KEEP_LABEL", "Keep")
+BACKUP_LABEL = os.environ.get("EMAIL_BACKUP_LABEL", "Backup")
+KEEP_LABEL = os.environ.get("EMAIL_KEEP_LABEL", "Keep")
 RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "730"))
 PAPERLESS_CONSUME_DIR = os.environ.get("PAPERLESS_CONSUME_DIR", "")
 
-DB_PATH = STORAGE_PATH / "db" / "gmail.db"
+DB_PATH = STORAGE_PATH / "db" / "emails.db"
 RAW_PATH = STORAGE_PATH / "raw"
 ATTACHMENTS_PATH = STORAGE_PATH / "attachments"
 
@@ -472,7 +472,7 @@ def print_stats(conn):
     """).fetchone()
 
     total, deleted, with_att, total_att, oldest, newest = stats
-    print(f"\nGmail Backup Statistics:")
+    print(f"\nEmail Backup Statistics:")
     print(f"  Total emails backed up:  {total}")
     print(f"  Deleted from Gmail:      {deleted}")
     print(f"  Emails with attachments: {with_att}")

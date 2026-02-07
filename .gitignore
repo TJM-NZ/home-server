@@ -20,10 +20,10 @@ frigate/mosquitto/log/
 # Immich runtime data
 immich/postgres/
 
-# Gmail backup runtime data
-gmail-backup/config/credentials.json
-gmail-backup/config/token.json
-gmail-backup/data/
+# Email backup runtime data
+email-backup/config/credentials.json
+email-backup/config/token.json
+email-backup/data/
 
 # Deploy log
 deploy.log
