@@ -36,6 +36,16 @@ if echo "$CHANGED" | grep -qE "^frigate/(config/config\.yml|docker-compose\.yml|
     echo "[deploy] Restarted frigate stack"
 fi
 
+# --- gmail-backup (rebuild and restart) ---
+if echo "$CHANGED" | grep -q "^gmail-backup/"; then
+    cp "$REPO_DIR/gmail-backup/backup.py"          "$HOME/gmail-backup/backup.py"
+    cp "$REPO_DIR/gmail-backup/docker-compose.yml"  "$HOME/gmail-backup/docker-compose.yml"
+    cp "$REPO_DIR/gmail-backup/Dockerfile"          "$HOME/gmail-backup/Dockerfile"
+    cd "$HOME/gmail-backup"
+    docker compose build --quiet
+    echo "[deploy] Rebuilt gmail-backup"
+fi
+
 # --- immich docker-compose ---
 if echo "$CHANGED" | grep -q "^immich/docker-compose.yml$"; then
     cp "$REPO_DIR/immich/docker-compose.yml" "$HOME/immich/docker-compose.yml"

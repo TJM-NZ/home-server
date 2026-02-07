@@ -1,0 +1,17 @@
+services:
+  gmail-backup:
+    container_name: gmail-backup
+    build: .
+    restart: "no"
+    volumes:
+      - ./backup.py:/app/backup.py
+      - ./config:/config
+      - ${BACKUP_STORAGE_PATH:-./data}:/data
+      # Uncomment when Paperless is set up
+      # - ${PAPERLESS_CONSUME_DIR}:/paperless-consume
+    env_file:
+      - .env
+    environment:
+      BACKUP_STORAGE_PATH: /data
+      GOOGLE_CREDENTIALS_FILE: /config/credentials.json
+      GOOGLE_TOKEN_FILE: /config/token.json
