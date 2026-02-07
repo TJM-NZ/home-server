@@ -8,8 +8,6 @@ VERSION=$(cat VERSION 2>/dev/null || echo "unknown")
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_DATE=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "unknown")
 
-echo "Home Server Version"
-echo "==================="
 echo "Version: $VERSION"
 echo "Commit:  $GIT_SHA"
 echo "Date:    $GIT_DATE"
