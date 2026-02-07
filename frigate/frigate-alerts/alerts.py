@@ -231,8 +231,6 @@ def handle_version_command():
         remote_version = get_latest_remote_version()
 
         lines = [
-            "Home Server Version",
-            "===================",
             f"Installed: {local_version}",
         ]
 
