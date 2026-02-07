@@ -209,19 +209,15 @@ def handle_clear_cache_command():
 def handle_version_command():
     """Report current version information."""
     try:
-        result = subprocess.run(
-            ["/bin/bash", "/app/version.sh"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
+        version_file = "/app/VERSION"
+        try:
+            with open(version_file, "r") as f:
+                version = f.read().strip()
+        except OSError:
+            version = "unknown"
 
-        if result.returncode == 0:
-            message = result.stdout.strip()
-            print(f"Version info:\n{message}")
-        else:
-            message = "❌ Could not retrieve version information"
-            print(message)
+        message = f"Home Server Version\n===================\nVersion: {version}"
+        print(f"Version info:\n{message}")
 
         # Send version notification
         requests.post(
