@@ -69,8 +69,19 @@ def get_gmail_service():
                 log.error("No credentials.json found at %s", CREDENTIALS_FILE)
                 log.error("See CLAUDE.md for setup instructions")
                 sys.exit(1)
-            flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
-            creds = flow.run_local_server(port=0)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                str(CREDENTIALS_FILE),
+                SCOPES,
+                redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+            )
+            auth_url, _ = flow.authorization_url(prompt='consent')
+            log.info("\n" + "="*80)
+            log.info("Please visit this URL to authorize the application:")
+            log.info(auth_url)
+            log.info("="*80 + "\n")
+            code = input("Enter the authorization code: ")
+            flow.fetch_token(code=code)
+            creds = flow.credentials
 
         TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         TOKEN_FILE.write_text(creds.to_json())
@@ -282,7 +293,8 @@ def backup_emails(service, conn):
 
             try:
                 raw_msg = fetch_message(service, gmail_id)
-                raw_bytes = base64.urlsafe_b64decode(raw_msg["data"])
+                # Gmail API returns the raw email in the 'raw' field
+                raw_bytes = base64.urlsafe_b64decode(raw_msg["raw"])
 
                 # Parse email
                 msg = email.message_from_bytes(raw_bytes, policy=policy.default)
