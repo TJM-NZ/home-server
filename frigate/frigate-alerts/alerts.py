@@ -16,6 +16,7 @@ ALERT_OBJECTS = {"person", "car", "dog", "cat"}
 PET_OBJECTS = {"dog", "cat"}
 PET_COOLDOWN_SECONDS = int(os.environ.get("PET_COOLDOWN_SECONDS", 300))
 COOLDOWN_SECONDS = 60
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "TJM-NZ/home-server")
 CODEBASE_WATCH_FILE = os.environ.get("CODEBASE_WATCH_FILE", "/app/alerts.py")
 CODEBASE_CHECK_INTERVAL = 10  # Check for file changes every 10 seconds
 DISK_CHECK_INTERVAL = 300  # Check disk every 5 minutes
@@ -206,24 +207,54 @@ def handle_clear_cache_command():
     except Exception as e:
         print(f"Error clearing cache: {e}")
 
+def get_latest_remote_version():
+    """Fetch the latest version from GitHub."""
+    try:
+        url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/master/VERSION"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            return resp.text.strip()
+    except Exception as e:
+        print(f"Error fetching remote version: {e}")
+    return None
+
 def handle_version_command():
-    """Report current version information."""
+    """Report current version and check for updates from GitHub."""
     try:
         version_file = "/app/VERSION"
         try:
             with open(version_file, "r") as f:
-                version = f.read().strip()
+                local_version = f.read().strip()
         except OSError:
-            version = "unknown"
+            local_version = "unknown"
 
-        message = f"Home Server Version\n===================\nVersion: {version}"
+        remote_version = get_latest_remote_version()
+
+        lines = [
+            "Home Server Version",
+            "===================",
+            f"Installed: {local_version}",
+        ]
+
+        if remote_version is None:
+            lines.append("Latest:    (could not check)")
+            title = "Home Server Version"
+        elif remote_version == local_version:
+            lines.append(f"Latest:    {remote_version}")
+            lines.append("✅ Up to date")
+            title = "Home Server Version ✅"
+        else:
+            lines.append(f"Latest:    {remote_version}")
+            lines.append("⬆️ Update available!")
+            title = "Update Available ⬆️"
+
+        message = "\n".join(lines)
         print(f"Version info:\n{message}")
 
-        # Send version notification
         requests.post(
             f"https://ntfy.sh/{NTFY_TOPIC}",
             data=message,
-            headers={"Title": "Home Server Version"},
+            headers={"Title": title},
             timeout=10
         )
 
