@@ -129,6 +129,15 @@ def init_db():
             FOREIGN KEY (message_id) REFERENCES emails(message_id)
         );
 
+        CREATE TABLE IF NOT EXISTS cleanup_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_at TEXT,
+            cutoff_date TEXT,
+            retention_days INTEGER,
+            emails_deleted INTEGER,
+            emails_kept INTEGER
+        );
+
         CREATE VIRTUAL TABLE IF NOT EXISTS emails_fts USING fts5(
             subject,
             sender,
@@ -463,6 +472,19 @@ def cleanup_old_emails(service, conn):
             log.exception("Failed to list messages for cleanup")
             break
 
+    # Log this cleanup run
+    conn.execute("""
+        INSERT INTO cleanup_runs (run_at, cutoff_date, retention_days, emails_deleted, emails_kept)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        datetime.now(timezone.utc).isoformat(),
+        cutoff.strftime("%Y-%m-%d"),
+        RETENTION_DAYS,
+        deleted,
+        kept,
+    ))
+    conn.commit()
+
     log.info("Cleanup complete: %d deleted from Gmail, %d kept", deleted, kept)
 
 
@@ -515,6 +537,22 @@ def print_stats(conn):
     print(f"  Total attachments:       {total_att}")
     print(f"  Date range:              {oldest} → {newest}")
     print()
+
+    # Show recent cleanup runs
+    cleanup_history = conn.execute("""
+        SELECT run_at, cutoff_date, retention_days, emails_deleted, emails_kept
+        FROM cleanup_runs
+        ORDER BY run_at DESC
+        LIMIT 10
+    """).fetchall()
+
+    if cleanup_history:
+        print(f"Recent Cleanup Runs:")
+        for run_at, cutoff_date, retention_days, emails_deleted, emails_kept in cleanup_history:
+            # Parse ISO timestamp and format nicely
+            run_date = run_at[:10] if run_at else "Unknown"
+            print(f"  {run_date} | Cutoff: {cutoff_date} ({retention_days}d) | Deleted: {emails_deleted} | Kept: {emails_kept}")
+        print()
 
 
 def main():
