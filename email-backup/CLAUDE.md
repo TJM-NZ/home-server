@@ -65,14 +65,42 @@ docker compose run --rm email-backup search "invoice"
 docker compose run --rm email-backup stats
 ```
 
-## Scheduling with Cron
+## Scheduling with Systemd Timers
+
+The repo includes systemd service and timer files for automated backups:
+- **Weekly backup** - Mondays at 2:00 AM
+- **Monthly cleanup** - 1st of month at 3:00 AM
+
+### Installation
 
 ```bash
-# Daily backup at 2am
-0 2 * * * cd ~/email-backup && docker compose run --rm email-backup backup >> /var/log/email-backup.log 2>&1
+# Create user systemd directory if it doesn't exist
+mkdir -p ~/.config/systemd/user
 
-# Monthly cleanup on the 1st at 3am
-0 3 1 * * cd ~/email-backup && docker compose run --rm email-backup cleanup >> /var/log/email-backup.log 2>&1
+# Symlink the service and timer files
+ln -sf ~/home-server/email-backup/email-backup.service ~/.config/systemd/user/
+ln -sf ~/home-server/email-backup/email-backup.timer ~/.config/systemd/user/
+ln -sf ~/home-server/email-backup/email-backup-cleanup.service ~/.config/systemd/user/
+ln -sf ~/home-server/email-backup/email-backup-cleanup.timer ~/.config/systemd/user/
+
+# Reload systemd and enable timers
+systemctl --user daemon-reload
+systemctl --user enable --now email-backup.timer
+systemctl --user enable --now email-backup-cleanup.timer
+```
+
+### Check Status
+
+```bash
+# View timer status
+systemctl --user list-timers
+
+# Check service logs
+journalctl --user -u email-backup.service
+journalctl --user -u email-backup-cleanup.service
+
+# Manually trigger a backup (for testing)
+systemctl --user start email-backup.service
 ```
 
 ## Storage Layout
