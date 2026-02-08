@@ -188,7 +188,8 @@ def extract_body_text(msg):
                     try:
                         parts.append(payload.decode(charset, errors="replace"))
                     except LookupError:
-                        # Handle invalid/unknown charset by falling back to UTF-8
+                        # Unknown/invalid encoding, fall back to UTF-8
+                        log.warning("Unknown encoding '%s', falling back to UTF-8", charset)
                         parts.append(payload.decode("utf-8", errors="replace"))
         return "\n".join(parts)
     else:
@@ -198,7 +199,8 @@ def extract_body_text(msg):
             try:
                 return payload.decode(charset, errors="replace")
             except LookupError:
-                # Handle invalid/unknown charset by falling back to UTF-8
+                # Unknown/invalid encoding, fall back to UTF-8
+                log.warning("Unknown encoding '%s', falling back to UTF-8", charset)
                 return payload.decode("utf-8", errors="replace")
     return ""
 
@@ -382,70 +384,84 @@ def backup_emails(service, conn):
 
 
 def cleanup_old_emails(service, conn):
-    """Delete emails from Gmail that are older than RETENTION_DAYS and not labelled Keep."""
+    """Delete ALL emails from Gmail that are older than RETENTION_DAYS and not labelled Keep."""
     keep_label_id = get_label_id(service, KEEP_LABEL)
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
     cutoff_epoch = int(cutoff.timestamp())
+    # Format for Gmail search query (YYYY/MM/DD)
+    cutoff_date_str = cutoff.strftime("%Y/%m/%d")
 
     log.info(
-        "Cleaning up emails older than %s (%d days)",
+        "Cleaning up ALL emails from Gmail older than %s (%d days)",
         cutoff.strftime("%Y-%m-%d"), RETENTION_DAYS,
     )
 
-    # Find backed-up emails older than cutoff, not yet deleted from Gmail
-    rows = conn.execute("""
-        SELECT message_id, gmail_id, subject, sender, date, labels
-        FROM emails
-        WHERE date_epoch < ? AND date_epoch > 0 AND deleted_from_gmail = 0
-    """, (cutoff_epoch,)).fetchall()
-
     deleted = 0
     kept = 0
+    page_token = None
 
-    for message_id, gmail_id, subject, sender, date_str, labels_json in rows:
-        # Check if email has the Keep label
+    # Query Gmail directly for all emails before the cutoff date
+    while True:
         try:
-            label_ids = json.loads(labels_json)
-        except (json.JSONDecodeError, TypeError):
-            label_ids = []
-
-        if keep_label_id and keep_label_id in label_ids:
-            kept += 1
-            continue
-
-        # Re-check Gmail for current labels (in case Keep was added after backup)
-        try:
-            current_msg = service.users().messages().get(
-                userId="me", id=gmail_id, format="metadata",
-                metadataHeaders=["Subject"],
+            results = service.users().messages().list(
+                userId="me",
+                q=f"before:{cutoff_date_str}",
+                pageToken=page_token,
+                maxResults=100
             ).execute()
-            current_labels = current_msg.get("labelIds", [])
 
-            if keep_label_id and keep_label_id in current_labels:
-                # Update our local record with current labels
-                conn.execute(
-                    "UPDATE emails SET labels = ? WHERE gmail_id = ?",
-                    (json.dumps(current_labels), gmail_id),
-                )
-                conn.commit()
-                kept += 1
-                continue
+            messages = results.get("messages", [])
+            if not messages:
+                break
 
-            # Delete from Gmail (move to trash)
-            service.users().messages().trash(userId="me", id=gmail_id).execute()
+            for msg_summary in messages:
+                gmail_id = msg_summary["id"]
 
-            conn.execute(
-                "UPDATE emails SET deleted_from_gmail = 1 WHERE gmail_id = ?",
-                (gmail_id,),
-            )
-            conn.commit()
-            deleted += 1
-            log.info("Deleted from Gmail: %s — %s (%s)", sender, subject, date_str)
+                try:
+                    # Get message metadata to check labels
+                    msg = service.users().messages().get(
+                        userId="me", id=gmail_id, format="metadata",
+                        metadataHeaders=["Subject", "From", "Date"],
+                    ).execute()
+
+                    current_labels = msg.get("labelIds", [])
+
+                    # Skip if email has the Keep label
+                    if keep_label_id and keep_label_id in current_labels:
+                        kept += 1
+                        continue
+
+                    # Extract metadata for logging
+                    headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                    subject = headers.get("Subject", "(no subject)")
+                    sender = headers.get("From", "(unknown)")
+                    date_str = headers.get("Date", "(no date)")
+
+                    # Delete from Gmail (move to trash)
+                    service.users().messages().trash(userId="me", id=gmail_id).execute()
+
+                    # Update database if this email was backed up
+                    conn.execute(
+                        "UPDATE emails SET deleted_from_gmail = 1 WHERE gmail_id = ?",
+                        (gmail_id,),
+                    )
+                    conn.commit()
+
+                    deleted += 1
+                    log.info("Deleted from Gmail: %s — %s (%s)", sender, subject, date_str)
+
+                except Exception:
+                    log.exception("Failed to process message %s for cleanup", gmail_id)
+                    continue
+
+            page_token = results.get("nextPageToken")
+            if not page_token:
+                break
 
         except Exception:
-            log.exception("Failed to process message %s for cleanup", gmail_id)
-            continue
+            log.exception("Failed to list messages for cleanup")
+            break
 
     log.info("Cleanup complete: %d deleted from Gmail, %d kept", deleted, kept)
 
