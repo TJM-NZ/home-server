@@ -185,13 +185,21 @@ def extract_body_text(msg):
                 payload = part.get_payload(decode=True)
                 if payload:
                     charset = part.get_content_charset() or "utf-8"
-                    parts.append(payload.decode(charset, errors="replace"))
+                    try:
+                        parts.append(payload.decode(charset, errors="replace"))
+                    except LookupError:
+                        # Handle invalid/unknown charset by falling back to UTF-8
+                        parts.append(payload.decode("utf-8", errors="replace"))
         return "\n".join(parts)
     else:
         payload = msg.get_payload(decode=True)
         if payload:
             charset = msg.get_content_charset() or "utf-8"
-            return payload.decode(charset, errors="replace")
+            try:
+                return payload.decode(charset, errors="replace")
+            except LookupError:
+                # Handle invalid/unknown charset by falling back to UTF-8
+                return payload.decode("utf-8", errors="replace")
     return ""
 
 
