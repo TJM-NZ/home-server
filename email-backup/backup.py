@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from email import policy
 from pathlib import Path
 
+import requests
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -47,10 +48,29 @@ BACKUP_LABEL = os.environ.get("EMAIL_BACKUP_LABEL", "Backup")
 KEEP_LABEL = os.environ.get("EMAIL_KEEP_LABEL", "Keep")
 RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "730"))
 PAPERLESS_CONSUME_DIR = os.environ.get("PAPERLESS_CONSUME_DIR", "")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
 
 DB_PATH = STORAGE_PATH / "db" / "emails.db"
 RAW_PATH = STORAGE_PATH / "raw"
 ATTACHMENTS_PATH = STORAGE_PATH / "attachments"
+
+
+def send_ntfy(title, message, priority="default", tags=""):
+    """Send a notification via ntfy. Silently skips if NTFY_TOPIC is not set."""
+    if not NTFY_TOPIC:
+        return
+    headers = {"Title": title, "Priority": priority}
+    if tags:
+        headers["Tags"] = tags
+    try:
+        requests.post(
+            f"https://ntfy.sh/{NTFY_TOPIC}",
+            data=message,
+            headers=headers,
+            timeout=10,
+        )
+    except Exception as e:
+        log.warning("Failed to send ntfy notification: %s", e)
 
 
 def get_gmail_service():
@@ -279,6 +299,12 @@ def backup_emails(service, conn):
     label_id = get_label_id(service, BACKUP_LABEL)
     if not label_id:
         log.error("Label '%s' not found in Gmail", BACKUP_LABEL)
+        send_ntfy(
+            "Email Backup Failed",
+            f"Label '{BACKUP_LABEL}' not found in Gmail",
+            priority="high",
+            tags="x",
+        )
         sys.exit(1)
 
     log.info("Backing up emails with label '%s' (id: %s)", BACKUP_LABEL, label_id)
@@ -378,8 +404,14 @@ def backup_emails(service, conn):
                 total_backed_up += 1
                 log.info("Backed up: %s — %s", sender, subject)
 
-            except Exception:
+            except Exception as exc:
                 log.exception("Failed to back up message %s", gmail_id)
+                send_ntfy(
+                    "Email Backup Error",
+                    f"Failed to back up message {gmail_id}: {exc}",
+                    priority="high",
+                    tags="warning",
+                )
                 continue
 
         page_token = results.get("nextPageToken")
@@ -389,6 +421,11 @@ def backup_emails(service, conn):
     log.info(
         "Backup complete: %d new, %d already existed",
         total_backed_up, total_skipped,
+    )
+    send_ntfy(
+        "Email Backup Complete",
+        f"Backed up {total_backed_up} new emails ({total_skipped} already existed)",
+        tags="white_check_mark",
     )
 
 
