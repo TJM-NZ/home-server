@@ -17,3 +17,22 @@ services:
       BACKUP_STORAGE_PATH: /data
       GOOGLE_CREDENTIALS_FILE: /config/credentials.json
       GOOGLE_TOKEN_FILE: /config/token.json
+
+  email-listener:
+    container_name: email-listener
+    build: .
+    restart: unless-stopped
+    command: ["listener.py"]
+    volumes:
+      - ./email_common.py:/app/email_common.py
+      - ./backup.py:/app/backup.py
+      - ./cleanup.py:/app/cleanup.py
+      - ./listener.py:/app/listener.py
+      - ./config:/config
+      - ${BACKUP_STORAGE_PATH:-./data}:/data
+    env_file:
+      - .env
+    environment:
+      BACKUP_STORAGE_PATH: /data
+      GOOGLE_CREDENTIALS_FILE: /config/credentials.json
+      GOOGLE_TOKEN_FILE: /config/token.json

@@ -21,6 +21,7 @@ from email_common import (
     init_db,
     log,
     print_stats,
+    send_ntfy,
 )
 
 
@@ -119,6 +120,13 @@ def cleanup_old_emails(service, conn, dry_run=False):
 
     action = "Would delete" if dry_run else "Deleted"
     log.info("Cleanup complete: %d %s from Gmail, %d kept", deleted, action.lower(), kept)
+
+    if not dry_run:
+        send_ntfy(
+            "Email Cleanup Complete",
+            f"Deleted {deleted} emails from Gmail ({kept} kept)",
+            tags="wastebasket",
+        )
 
 
 def main():
