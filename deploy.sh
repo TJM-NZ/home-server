@@ -38,7 +38,9 @@ fi
 
 # --- email-backup (rebuild and restart) ---
 if echo "$CHANGED" | grep -q "^email-backup/"; then
-    cp "$REPO_DIR/email-backup/backup.py"          "$HOME/email-backup/backup.py"
+    cp "$REPO_DIR/email-backup/email_common.py"     "$HOME/email-backup/email_common.py"
+    cp "$REPO_DIR/email-backup/backup.py"           "$HOME/email-backup/backup.py"
+    cp "$REPO_DIR/email-backup/cleanup.py"          "$HOME/email-backup/cleanup.py"
     cp "$REPO_DIR/email-backup/docker-compose.yml"  "$HOME/email-backup/docker-compose.yml"
     cp "$REPO_DIR/email-backup/Dockerfile"          "$HOME/email-backup/Dockerfile"
     cd "$HOME/email-backup"

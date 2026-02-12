@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir \
     google-auth-httplib2 \
     google-auth-oauthlib
 
-COPY backup.py .
+COPY email_common.py backup.py cleanup.py ./
 
-ENTRYPOINT ["python", "-u", "backup.py"]
-CMD ["backup"]
+ENTRYPOINT ["python", "-u"]
+CMD ["backup.py"]

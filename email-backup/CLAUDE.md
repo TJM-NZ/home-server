@@ -37,11 +37,19 @@ docker compose build
 
 # First run — will open a browser for OAuth consent
 # (run interactively for the initial auth flow)
-docker compose run --rm email-backup backup
+docker compose run --rm email-backup backup.py
 ```
 
 After the first run, `config/token.json` is created and subsequent runs
 authenticate automatically.
+
+## Code Structure
+
+| File | Purpose |
+|------|---------|
+| `email_common.py` | Shared: auth, DB init, config, label lookup, email parsing, ntfy |
+| `backup.py` | Downloads emails, extracts attachments, search, stats |
+| `cleanup.py` | Deletes old emails from Gmail (keeps local backups) |
 
 ## Gmail Labels
 
@@ -53,16 +61,19 @@ Create these labels in Gmail:
 
 ```bash
 # Run a backup (download new Backup emails)
-docker compose run --rm email-backup backup
+docker compose run --rm email-backup backup.py
 
 # Run cleanup (delete emails >2 years old from Gmail, unless labelled Keep)
-docker compose run --rm email-backup cleanup
+docker compose run --rm email-backup cleanup.py
+
+# Dry run cleanup (preview what would be deleted)
+docker compose run --rm email-backup cleanup.py --dry-run
 
 # Search backed-up emails
-docker compose run --rm email-backup search "invoice"
+docker compose run --rm email-backup backup.py search "invoice"
 
 # View statistics
-docker compose run --rm email-backup stats
+docker compose run --rm email-backup backup.py stats
 ```
 
 ## Scheduling with Systemd Timers

@@ -4,7 +4,9 @@ services:
     build: .
     restart: "no"
     volumes:
+      - ./email_common.py:/app/email_common.py
       - ./backup.py:/app/backup.py
+      - ./cleanup.py:/app/cleanup.py
       - ./config:/config
       - ${BACKUP_STORAGE_PATH:-./data}:/data
       # Uncomment when Paperless is set up
