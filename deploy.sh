@@ -7,6 +7,21 @@ set -euo pipefail
 REPO_DIR="$HOME/home-server"
 cd "$REPO_DIR"
 
+# ntfy topics for deploy notifications (main topics, not command topics)
+FRIGATE_NTFY_TOPIC="frigate-manse"
+EMAIL_NTFY_TOPIC="email-backup"
+
+notify_deploy() {
+    local topic="$1"
+    local title="$2"
+    local message="$3"
+    curl -s -o /dev/null \
+        -H "Title: $title" \
+        -H "Tags: package" \
+        -d "$message" \
+        "https://ntfy.sh/$topic" || true
+}
+
 BEFORE=$(git rev-parse HEAD)
 git pull --quiet origin master
 AFTER=$(git rev-parse HEAD)
@@ -24,6 +39,7 @@ if echo "$CHANGED" | grep -qE "^(frigate/frigate-alerts/alerts.py|version.sh|VER
     cp "$REPO_DIR/VERSION" "$HOME/frigate/frigate-alerts/VERSION"
     docker restart frigate-alerts
     echo "[deploy] Restarted frigate-alerts"
+    notify_deploy "$FRIGATE_NTFY_TOPIC" "Frigate Alerts Deployed" "Codebase updated and service restarted"
 fi
 
 # --- frigate config or docker-compose ---
@@ -34,6 +50,7 @@ if echo "$CHANGED" | grep -qE "^frigate/(config/config\.yml|docker-compose\.yml|
     cd "$HOME/frigate"
     docker compose up -d
     echo "[deploy] Restarted frigate stack"
+    notify_deploy "$FRIGATE_NTFY_TOPIC" "Frigate Stack Deployed" "Config updated and stack restarted"
 fi
 
 # --- email-backup (rebuild and restart) ---
@@ -46,6 +63,7 @@ if echo "$CHANGED" | grep -q "^email-backup/"; then
     cd "$HOME/email-backup"
     docker compose build --quiet
     echo "[deploy] Rebuilt email-backup"
+    notify_deploy "$EMAIL_NTFY_TOPIC" "Email Backup Deployed" "Codebase updated and service rebuilt"
 fi
 
 # --- immich docker-compose ---
@@ -54,4 +72,5 @@ if echo "$CHANGED" | grep -q "^immich/docker-compose.yml$"; then
     cd "$HOME/immich"
     docker compose up -d
     echo "[deploy] Restarted immich stack"
+    # Add immich ntfy topic here when available
 fi

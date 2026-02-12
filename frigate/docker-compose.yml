@@ -49,3 +49,4 @@ services:
       NTFY_TOPIC: frigate-manse
       FRIGATE_URL: http://frigate:5000
       GITHUB_REPO: TJM-NZ/home-server
+      NTFY_COMMAND_SECRET: ${NTFY_COMMAND_SECRET}
