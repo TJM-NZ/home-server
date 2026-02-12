@@ -9,6 +9,7 @@ Docker-based home server configuration for media and security cameras.
 | Immich | 2283 | Photo backup & management |
 | Frigate | 5000 | NVR / security camera system |
 | Mosquitto | 1883 | MQTT broker (used by Frigate) |
+| Email Backup | N/A  | E-mail backup service |
 
 ## Setup
 
