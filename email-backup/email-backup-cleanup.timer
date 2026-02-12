@@ -1,0 +1,11 @@
+[Unit]
+Description=Monthly Email Cleanup
+Requires=email-backup-cleanup.service
+
+[Timer]
+# Run on the 1st of every month at 3:00 AM
+OnCalendar=*-*-01 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly Email Backup
+Requires=email-backup.service
+
+[Timer]
+# Run every Monday at 2:00 AM
+OnCalendar=Mon *-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

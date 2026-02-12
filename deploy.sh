@@ -36,6 +36,18 @@ if echo "$CHANGED" | grep -qE "^frigate/(config/config\.yml|docker-compose\.yml|
     echo "[deploy] Restarted frigate stack"
 fi
 
+# --- email-backup (rebuild and restart) ---
+if echo "$CHANGED" | grep -q "^email-backup/"; then
+    cp "$REPO_DIR/email-backup/email_common.py"     "$HOME/email-backup/email_common.py"
+    cp "$REPO_DIR/email-backup/backup.py"           "$HOME/email-backup/backup.py"
+    cp "$REPO_DIR/email-backup/cleanup.py"          "$HOME/email-backup/cleanup.py"
+    cp "$REPO_DIR/email-backup/docker-compose.yml"  "$HOME/email-backup/docker-compose.yml"
+    cp "$REPO_DIR/email-backup/Dockerfile"          "$HOME/email-backup/Dockerfile"
+    cd "$HOME/email-backup"
+    docker compose build --quiet
+    echo "[deploy] Rebuilt email-backup"
+fi
+
 # --- immich docker-compose ---
 if echo "$CHANGED" | grep -q "^immich/docker-compose.yml$"; then
     cp "$REPO_DIR/immich/docker-compose.yml" "$HOME/immich/docker-compose.yml"

@@ -1,0 +1,14 @@
+[Unit]
+Description=Email Backup Service
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/teo-mcarthur/home-server/email-backup
+ExecStart=/usr/bin/docker compose run --rm email-backup backup.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
