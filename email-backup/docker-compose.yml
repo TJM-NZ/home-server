@@ -36,3 +36,4 @@ services:
       BACKUP_STORAGE_PATH: /data
       GOOGLE_CREDENTIALS_FILE: /config/credentials.json
       GOOGLE_TOKEN_FILE: /config/token.json
+      NTFY_COMMAND_SECRET: ${NTFY_COMMAND_SECRET}

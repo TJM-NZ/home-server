@@ -17,8 +17,7 @@ PET_OBJECTS = {"dog", "cat"}
 PET_COOLDOWN_SECONDS = int(os.environ.get("PET_COOLDOWN_SECONDS", 300))
 COOLDOWN_SECONDS = 60
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "TJM-NZ/home-server")
-CODEBASE_WATCH_FILE = os.environ.get("CODEBASE_WATCH_FILE", "/app/alerts.py")
-CODEBASE_CHECK_INTERVAL = 30  # Check for file changes every 10 seconds
+NTFY_COMMAND_SECRET = os.environ.get("NTFY_COMMAND_SECRET", "")
 DISK_CHECK_INTERVAL = 300  # Check disk every 5 minutes
 DISK_WARNING_THRESHOLD = 80  # Alert when disk usage exceeds 80%
 CAMERA_CHECK_INTERVAL = 60  # Check camera health every 1 minute
@@ -269,39 +268,22 @@ def handle_version_command():
         except:
             pass
 
-def codebase_watch_loop():
-    """Background thread to detect codebase updates via file mtime changes."""
-    print(f"Starting codebase watcher on: {CODEBASE_WATCH_FILE}")
+def validate_command(raw_message):
+    """Validate command secret and return the command, or None if invalid."""
+    if not NTFY_COMMAND_SECRET:
+        print("Warning: NTFY_COMMAND_SECRET not set, rejecting all commands")
+        return None
 
-    try:
-        last_mtime = os.path.getmtime(CODEBASE_WATCH_FILE)
-    except OSError:
-        print(f"Warning: watch file {CODEBASE_WATCH_FILE} not found, watcher disabled")
-        return
+    if ":" not in raw_message:
+        print(f"Rejected command (no secret): {raw_message}")
+        return None
 
-    while True:
-        time.sleep(CODEBASE_CHECK_INTERVAL)
-        try:
-            current_mtime = os.path.getmtime(CODEBASE_WATCH_FILE)
-            if current_mtime != last_mtime:
-                last_mtime = current_mtime
-                message = f"Codebase updated on server ({CODEBASE_WATCH_FILE} changed)"
-                print(message)
-                try:
-                    requests.post(
-                        f"https://ntfy.sh/{NTFY_COMMANDS_TOPIC}",
-                        data=message,
-                        headers={
-                            "Title": "Codebase Updated",
-                            "Tags": "package",
-                        },
-                        timeout=10
-                    )
-                    print("Sent codebase update notification")
-                except Exception as e:
-                    print(f"Error sending codebase update notification: {e}")
-        except OSError:
-            pass
+    secret, _, command = raw_message.partition(":")
+    if secret != NTFY_COMMAND_SECRET:
+        print(f"Rejected command (bad secret): {raw_message}")
+        return None
+
+    return command.strip().lower()
 
 def command_listener_loop():
     """Background thread to listen for commands via ntfy."""
@@ -324,7 +306,10 @@ def command_listener_loop():
                     try:
                         msg = json.loads(line.decode('utf-8'))
                         if msg.get('event') == 'message':
-                            command = msg.get('message', '').strip().lower()
+                            raw = msg.get('message', '').strip()
+                            command = validate_command(raw)
+                            if command is None:
+                                continue
                             print(f"Received command: {command}")
 
                             if command == 'restart':
@@ -383,14 +368,11 @@ def main():
     print(f"Alerting on: {ALERT_OBJECTS}")
     print(f"Pet objects: {PET_OBJECTS} (cooldown: {PET_COOLDOWN_SECONDS}s)")
     print(f"Disk check interval: {DISK_CHECK_INTERVAL}s, threshold: {DISK_WARNING_THRESHOLD}%")
+    print(f"Command secret: {'configured' if NTFY_COMMAND_SECRET else 'NOT SET — commands will be rejected'}")
 
     # Start disk monitoring thread
     disk_thread = threading.Thread(target=disk_monitor_loop, daemon=True)
     disk_thread.start()
-
-    # Start codebase watcher thread
-    watch_thread = threading.Thread(target=codebase_watch_loop, daemon=True)
-    watch_thread.start()
 
     # Start command listener thread
     cmd_thread = threading.Thread(target=command_listener_loop, daemon=True)
