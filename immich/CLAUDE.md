@@ -21,9 +21,10 @@ Set up Immich as a NAS solution for backing up photos from Android phones.
 - Server URL: `http://localhost:2283`
 
 ### Storage Layout
-- `/dev/sda1` (1.8TB): Mounted at `/mnt/frigate-storage` for Frigate NVR
-- `/dev/sdb2` (298GB): System disk mounted at `/`
-- `/dev/sdc1` (1.8TB): Mounted at `/mnt/immich-storage` for Immich photos
+- `/dev/nvme0n1` (238GB): System disk (NVMe) mounted at `/` — Immich DB stored here
+- `/dev/sda1` (1.8TB): Mounted at `/mnt/immich-storage` for Immich photos
+- `/dev/sdb1` (1.8TB): Mounted at `/mnt/frigate-storage` for Frigate NVR
+- `/dev/sdc` (300GB): Old system disk (kept for reference)
 
 ### Running Containers
 - immich_server (port 2283)
